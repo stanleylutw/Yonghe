@@ -62,7 +62,7 @@
             transition: all 0.3s ease;
         }
         
-        /* 當前節次高亮樣式 (純淺黃色背景，移除粗邊框) */
+        /* 當前節次高亮樣式 (純淺黃色背景) */
         .period-card.active-period {
             background-color: #fffde7; 
             box-shadow: 0 4px 12px rgba(251, 192, 45, 0.15);
@@ -74,6 +74,20 @@
         .period-card.active-period .class-item {
             background-color: #ffffff;
             border-color: #fff59d;
+        }
+
+        /* 即將上課預備樣式 (純淺綠色背景) */
+        .period-card.upcoming-period {
+            background-color: #e8f5e9;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+        }
+        .period-card.upcoming-period .period-header {
+            color: #2e7d32;
+            border-left-color: #2e7d32;
+        }
+        .period-card.upcoming-period .class-item {
+            background-color: #ffffff;
+            border-color: #a5d6a7;
         }
 
         .period-header {
@@ -246,7 +260,19 @@
                 5: "13:15 ~ 14:00",
                 6: "14:15 ~ 15:00",
                 7: "15:20 ~ 16:05",
-                8: "16:15 ~ 17:00" // 預留第八節時間
+                8: "16:15 ~ 17:00"
+            };
+
+            // 6. 資料庫：課前準備時間起點 (上一堂課的下課時間)
+            const prepStartTimes = {
+                1: "07:30", // 第一節提早 45 分鐘進入預備狀態
+                2: "09:00",
+                3: "10:00",
+                4: "11:00",
+                5: "12:00", // 中午午休皆算在第五節預備時間內
+                6: "14:00",
+                7: "15:00",
+                8: "16:05"
             };
 
             // DOM 元素綁定
@@ -276,6 +302,13 @@
                     }
                 }
                 return null;
+            }
+
+            // 時間字串轉換為分鐘數的輔助函數
+            function timeToMins(timeStr) {
+                if (!timeStr) return 0;
+                const parts = timeStr.split(':');
+                return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
             }
 
             // 核心渲染邏輯
@@ -315,17 +348,20 @@
                     const card = document.createElement('div');
                     card.className = 'period-card';
 
-                    // 判斷是否為當前節次 (僅限「今天」才會觸發高亮)
-                    if (isToday && periodTimes[period]) {
+                    // 判斷是否為當前節次或即將上課 (僅限「今天」)
+                    if (isToday && periodTimes[period] && prepStartTimes[period]) {
                         const times = periodTimes[period].split(' ~ ');
                         if (times.length === 2) {
-                            const startParts = times[0].split(':');
-                            const endParts = times[1].split(':');
-                            const startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
-                            const endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+                            const startMins = timeToMins(times[0]);
+                            const endMins = timeToMins(times[1]);
+                            const prepMins = timeToMins(prepStartTimes[period]);
 
                             if (currentMins >= startMins && currentMins <= endMins) {
-                                card.classList.add('active-period'); // 加入淺黃色高亮樣式
+                                // 正在上課 -> 淺黃色
+                                card.classList.add('active-period'); 
+                            } else if (currentMins >= prepMins && currentMins < startMins) {
+                                // 課前準備 / 下課休息時間 -> 淺綠色
+                                card.classList.add('upcoming-period');
                             }
                         }
                     }
@@ -382,6 +418,11 @@
             datePicker.addEventListener('change', (e) => {
                 if(e.target.value) renderSchedule(e.target.value);
             });
+
+            // 背景自動刷新機制：每 60 秒 (60000ms) 檢查並重繪一次
+            setInterval(() => {
+                renderSchedule(datePicker.value);
+            }, 60000);
         });
     </script>
 </body>
