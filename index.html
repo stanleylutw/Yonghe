@@ -12,21 +12,15 @@
             background-color: #ffffff;
             color: #333333;
             line-height: 1.6;
-            padding: 0 20px 40px 20px; /* 底部留白方便捲動對齊 */
+            padding: 20px;
             max-width: 600px;
             margin: 0 auto;
         }
 
-        /* 功能 2: 固定頂部控制列 (Sticky Header) 與毛玻璃特效 */
-        header { 
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background-color: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 20px 0 10px 0;
-            border-bottom: 1px solid #f0f0f0;
+        /* 移除 Sticky Header，改回一般標題區塊 */
+        header {
+            background-color: #ffffff;
+            padding: 10px 0;
             text-align: center;
             margin-bottom: 24px;
         }
@@ -70,12 +64,12 @@
             padding: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.02);
             transition: all 0.3s ease;
-            scroll-margin-top: 150px; /* 捲動對齊時預留上方間距，避免被 Sticky Header 遮住 */
+            /* 移除 scroll-margin-top，因為不再有置頂標題遮擋 */
         }
         
         /* 當前節次高亮樣式 (淺黃色) */
         .period-card.active-period {
-            background-color: #fffde7; 
+            background-color: #fffde7;
             box-shadow: 0 4px 12px rgba(251, 192, 45, 0.15);
         }
         .period-card.active-period .period-header {
@@ -151,7 +145,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. 資料庫：日期、老師與場地資料
+            // 1. 資料庫：日期、老師與場地資料 (引用自)
             const weekRanges = [
                 { week: 1, start: '2026-01-19', end: '2026-01-25' },
                 { week: 2, start: '2026-02-16', end: '2026-02-22' },
@@ -275,7 +269,7 @@
                 5: "12:00", 6: "14:00", 7: "15:00", 8: "16:05"
             };
 
-            // DOM 元素
+            // DOM 元素 (引用自)
             const datePicker = document.getElementById('date-picker');
             const statusText = document.getElementById('status-text');
             const container = document.getElementById('schedule-container');
@@ -333,7 +327,7 @@
                     const card = document.createElement('div');
                     card.className = 'period-card';
 
-                    // 顏色與捲動邏輯
+                    // 顏色與捲動邏輯 (引用自)
                     if (isToday && periodTimes[period]) {
                         const times = periodTimes[period].split(' ~ ');
                         const startMins = timeToMins(times[0]);
@@ -370,7 +364,7 @@
                     container.appendChild(card);
                 }
 
-                // 功能 3: 自動平滑捲動到當前/即將上課節次
+                // 功能 3: 自動平滑捲動到當前/即將上課節次 (引用自)
                 if (targetCard) {
                     setTimeout(() => {
                         targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -378,7 +372,7 @@
                 }
             }
 
-            // 初始化日期
+            // 初始化日期 (引用自)
             const today = new Date();
             const offset = today.getTimezoneOffset() * 60000;
             const localISODate = (new Date(today - offset)).toISOString().split('T')[0];
@@ -389,10 +383,10 @@
                 if(e.target.value) renderSchedule(e.target.value);
             });
 
-            // 背景自動重繪
+            // 背景自動重繪 (引用自)
             setInterval(() => renderSchedule(datePicker.value), 60000);
 
-            // 功能: Visibility Change (背景喚醒自動更新)
+            // 功能: Visibility Change (背景喚醒自動更新) (引用自)
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
                     renderSchedule(datePicker.value);
