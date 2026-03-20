@@ -12,18 +12,30 @@
             background-color: #ffffff;
             color: #333333;
             line-height: 1.6;
-            padding: 20px;
+            padding: 0 20px 40px 20px; /* 底部留白方便捲動對齊 */
             max-width: 600px;
             margin: 0 auto;
         }
 
-        /* 頂部 Header & 控制區 */
-        header { text-align: center; margin-bottom: 24px; }
+        /* 功能 2: 固定頂部控制列 (Sticky Header) 與毛玻璃特效 */
+        header { 
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 20px 0 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
         h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 16px; color: #111; }
         .control-group {
             display: flex;
             justify-content: center;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
         input[type="date"] {
             padding: 10px 16px;
@@ -37,14 +49,11 @@
         }
         input[type="date"]:focus { border-color: #999; }
 
-        /* 狀態提示列 */
         .status-bar {
             text-align: center;
             font-size: 0.95rem;
             color: #666;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 5px;
         }
 
         /* 課表卡片容器 */
@@ -52,6 +61,7 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
+            padding-top: 10px;
         }
         .period-card {
             background: #ffffff;
@@ -60,9 +70,10 @@
             padding: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.02);
             transition: all 0.3s ease;
+            scroll-margin-top: 150px; /* 捲動對齊時預留上方間距，避免被 Sticky Header 遮住 */
         }
         
-        /* 當前節次高亮樣式 (純淺黃色背景) */
+        /* 當前節次高亮樣式 (淺黃色) */
         .period-card.active-period {
             background-color: #fffde7; 
             box-shadow: 0 4px 12px rgba(251, 192, 45, 0.15);
@@ -76,7 +87,7 @@
             border-color: #fff59d;
         }
 
-        /* 即將上課預備樣式 (純淺綠色背景) */
+        /* 即將上課預備樣式 (淺綠色) */
         .period-card.upcoming-period {
             background-color: #e8f5e9;
             box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
@@ -140,7 +151,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. 資料庫：完整 1~21 週日期對應表 (2026年)
+            // 1. 資料庫：日期、老師與場地資料
             const weekRanges = [
                 { week: 1, start: '2026-01-19', end: '2026-01-25' },
                 { week: 2, start: '2026-02-16', end: '2026-02-22' },
@@ -165,7 +176,6 @@
                 { week: 21, start: '2026-06-29', end: '2026-07-05' }
             ];
 
-            // 2. 資料庫：教師所屬組別
             const teacherGroups = {
                 "陳咨穎": 1, "陽詩慧": 2, "傅秀雅": 2,
                 "劉嘉瑋": 3, "梁長厚": 4, "陳雅妮": 5, "謝怡如": 5,
@@ -174,7 +184,6 @@
                 "謝宜玲": 10, "江俊億": 11, "蔣憶綺": 11
             };
 
-            // 3. 資料庫：場地輪替表 1~21週
             const venueData = {
                 1: {1:"籃球 2", 2:"桌球 力", 3:"籃球 3", 4:"游泳 2", 5:"籃球 4", 6:"羽球", 7:"遊戲", 8:"籃球 1", 9:"桌球 和", 10:"游泳 1", 11:"排球"},
                 2: {1:"X", 2:"X", 3:"X", 4:"X", 5:"X", 6:"X", 7:"X", 8:"X", 9:"X", 10:"X", 11:"X"},
@@ -199,7 +208,6 @@
                 21: {1:"游泳 2", 2:"籃球 4", 3:"羽球", 4:"遊戲", 5:"籃球 1", 6:"桌球 和", 7:"游泳 1", 8:"排球", 9:"籃球 2", 10:"桌球 力", 11:"籃球 3"}
             };
 
-            // 4. 資料庫：固定課表
             const scheduleData = {
                 1: {
                     1: [{cls:"924",t:"張評傑"},{cls:"936",t:"傅秀雅"},{cls:"828",t:"陳咨穎"},{cls:"839",t:"孫泓民"},{cls:"719",t:"劉嘉瑋"},{cls:"736",t:"江汶珊"}],
@@ -251,7 +259,6 @@
                 }
             };
 
-            // 5. 資料庫：節次時間對應表
             const periodTimes = {
                 1: "08:15 ~ 09:00",
                 2: "09:15 ~ 10:00",
@@ -263,24 +270,16 @@
                 8: "16:15 ~ 17:00"
             };
 
-            // 6. 資料庫：課前準備時間起點 (上一堂課的下課時間)
             const prepStartTimes = {
-                1: "07:30", // 第一節提早 45 分鐘進入預備狀態
-                2: "09:00",
-                3: "10:00",
-                4: "11:00",
-                5: "12:00", // 中午午休皆算在第五節預備時間內
-                6: "14:00",
-                7: "15:00",
-                8: "16:05"
+                1: "07:30", 2: "09:00", 3: "10:00", 4: "11:00",
+                5: "12:00", 6: "14:00", 7: "15:00", 8: "16:05"
             };
 
-            // DOM 元素綁定
+            // DOM 元素
             const datePicker = document.getElementById('date-picker');
             const statusText = document.getElementById('status-text');
             const container = document.getElementById('schedule-container');
 
-            // 取得對應圖示
             function getVenueIcon(venue) {
                 if (!venue) return '未安排';
                 if (venue === 'X') return '本週無安排';
@@ -290,139 +289,115 @@
                 return venue;
             }
 
-            // 計算日期屬於第幾週
             function getWeekNumber(dateStr) {
                 const targetDate = new Date(dateStr);
                 for (const r of weekRanges) {
                     const start = new Date(r.start);
                     const end = new Date(r.end);
                     end.setHours(23, 59, 59);
-                    if (targetDate >= start && targetDate <= end) {
-                        return r.week;
-                    }
+                    if (targetDate >= start && targetDate <= end) return r.week;
                 }
                 return null;
             }
 
-            // 時間字串轉換為分鐘數的輔助函數
             function timeToMins(timeStr) {
-                if (!timeStr) return 0;
                 const parts = timeStr.split(':');
                 return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
             }
 
-            // 核心渲染邏輯
             function renderSchedule(dateStr) {
-                container.innerHTML = ''; // 清空容器
+                container.innerHTML = '';
                 const selectedDate = new Date(dateStr);
-                const dayOfWeek = selectedDate.getDay(); // 0 是週日, 1-5 是平日
+                const dayOfWeek = selectedDate.getDay();
                 const weekNum = getWeekNumber(dateStr);
 
-                // 獲取當前系統時間進行比對
                 const now = new Date();
                 const todayStr = now.toISOString().split('T')[0];
-                const isToday = (dateStr === todayStr); // 判斷選擇的日期是否為今天
+                const isToday = (dateStr === todayStr);
                 const currentMins = now.getHours() * 60 + now.getMinutes();
 
                 const dayNames = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
-                
-                if (!weekNum) {
-                    statusText.textContent = `${dateStr} (${dayNames[dayOfWeek]}) | 非學期排課區間`;
-                } else {
-                    statusText.textContent = `${dateStr} (${dayNames[dayOfWeek]}) | 第 ${weekNum} 週`;
-                }
+                statusText.textContent = weekNum ? `${dateStr} (${dayNames[dayOfWeek]}) | 第 ${weekNum} 週` : `${dateStr} (${dayNames[dayOfWeek]}) | 非學期排課區間`;
 
-                // 錯誤處理：非平日或找不到週次、課表資料
                 if (dayOfWeek === 0 || dayOfWeek === 6 || !scheduleData[dayOfWeek]) {
                     container.innerHTML = `<div class="empty-state">本日無體育課程安排</div>`;
                     return;
                 }
 
-                // 渲染 1 到 8 節
+                let targetCard = null;
+
                 for (let period = 1; period <= 8; period++) {
                     const periodClasses = scheduleData[dayOfWeek][period];
-                    
                     if (!periodClasses || periodClasses.length === 0) continue;
 
-                    // 建立節次卡片
                     const card = document.createElement('div');
                     card.className = 'period-card';
 
-                    // 判斷是否為當前節次或即將上課 (僅限「今天」)
-                    if (isToday && periodTimes[period] && prepStartTimes[period]) {
+                    // 顏色與捲動邏輯
+                    if (isToday && periodTimes[period]) {
                         const times = periodTimes[period].split(' ~ ');
-                        if (times.length === 2) {
-                            const startMins = timeToMins(times[0]);
-                            const endMins = timeToMins(times[1]);
-                            const prepMins = timeToMins(prepStartTimes[period]);
+                        const startMins = timeToMins(times[0]);
+                        const endMins = timeToMins(times[1]);
+                        const prepMins = timeToMins(prepStartTimes[period]);
 
-                            if (currentMins >= startMins && currentMins <= endMins) {
-                                // 正在上課 -> 淺黃色
-                                card.classList.add('active-period'); 
-                            } else if (currentMins >= prepMins && currentMins < startMins) {
-                                // 課前準備 / 下課休息時間 -> 淺綠色
-                                card.classList.add('upcoming-period');
-                            }
+                        if (currentMins >= startMins && currentMins <= endMins) {
+                            card.classList.add('active-period');
+                            targetCard = card;
+                        } else if (currentMins >= prepMins && currentMins < startMins) {
+                            card.classList.add('upcoming-period');
+                            targetCard = card;
                         }
                     }
                     
                     const header = document.createElement('div');
                     header.className = 'period-header';
-                    
-                    // 加入動態抓取的時間資訊
-                    const timeStr = periodTimes[period] ? ` - ${periodTimes[period]}` : '';
-                    header.textContent = `第 ${period} 節${timeStr}`;
-                    
+                    header.textContent = `第 ${period} 節 - ${periodTimes[period]}`;
                     card.appendChild(header);
 
                     const classList = document.createElement('div');
                     classList.className = 'class-list';
 
-                    // 迴圈處理該節的每一個班級
                     periodClasses.forEach(item => {
                         const classDiv = document.createElement('div');
                         classDiv.className = 'class-item';
-                        
-                        // 查表獲取場地
                         const tGroup = teacherGroups[item.t];
-                        let finalVenue = "查無資料";
-                        
-                        if (weekNum && venueData[weekNum] && tGroup) {
-                            finalVenue = venueData[weekNum][tGroup];
-                        }
-
-                        // 組合卡片內容
-                        classDiv.innerHTML = `
-                            <span class="class-name">${item.cls} 班</span>
-                            <span class="teacher-name">${item.t} 老師</span>
-                            <span class="venue-name">${getVenueIcon(finalVenue)}</span>
-                        `;
+                        const venue = (weekNum && venueData[weekNum] && tGroup) ? venueData[weekNum][tGroup] : "查無資料";
+                        classDiv.innerHTML = `<span class="class-name">${item.cls} 班</span><span class="teacher-name">${item.t} 老師</span><span class="venue-name">${getVenueIcon(venue)}</span>`;
                         classList.appendChild(classDiv);
                     });
 
                     card.appendChild(classList);
                     container.appendChild(card);
                 }
+
+                // 功能 3: 自動平滑捲動到當前/即將上課節次
+                if (targetCard) {
+                    setTimeout(() => {
+                        targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+                }
             }
 
-            // 初始化：自動抓取當天日期並帶入
+            // 初始化日期
             const today = new Date();
-            // 處理時區偏移量，確保取得本地正確的 YYYY-MM-DD
             const offset = today.getTimezoneOffset() * 60000;
             const localISODate = (new Date(today - offset)).toISOString().split('T')[0];
-            
             datePicker.value = localISODate;
             renderSchedule(localISODate);
 
-            // 綁定 Date Picker 變更事件
             datePicker.addEventListener('change', (e) => {
                 if(e.target.value) renderSchedule(e.target.value);
             });
 
-            // 背景自動刷新機制：每 60 秒 (60000ms) 檢查並重繪一次
-            setInterval(() => {
-                renderSchedule(datePicker.value);
-            }, 60000);
+            // 背景自動重繪
+            setInterval(() => renderSchedule(datePicker.value), 60000);
+
+            // 功能: Visibility Change (背景喚醒自動更新)
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    renderSchedule(datePicker.value);
+                }
+            });
         });
     </script>
 </body>
