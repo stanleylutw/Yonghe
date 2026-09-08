@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>永和國中 體育課表查詢</title>
     <style>
+        /* 基礎設定與簡約白色風格 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -16,6 +17,7 @@
             margin: 0 auto;
         }
 
+        /* 移除 Sticky Header，改回一般標題區塊 */
         header {
             background-color: #ffffff;
             padding: 10px 0;
@@ -48,6 +50,7 @@
             padding-bottom: 5px;
         }
 
+        /* 課表卡片容器 */
         #schedule-container {
             display: flex;
             flex-direction: column;
@@ -61,6 +64,7 @@
             padding: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.02);
             transition: all 0.3s ease;
+            /* 移除 scroll-margin-top，因為不再有置頂標題遮擋 */
         }
         
         /* 當前節次高亮樣式 (淺黃色) */
@@ -136,51 +140,44 @@
         <div class="status-bar" id="status-text">載入中...</div>
     </header>
 
-    <main id="schedule-container"></main>
+    <main id="schedule-container">
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. 115學年度第一學期週次區間 (2026/08/31 ~ 2027/01/22)
+            // 1. 資料庫：日期、老師與場地資料 (引用自)
             const weekRanges = [
-                { week: 1, start: '2026-08-31', end: '2026-09-06' },
-                { week: 2, start: '2026-09-07', end: '2026-09-13' },
-                { week: 3, start: '2026-09-14', end: '2026-09-20' },
-                { week: 4, start: '2026-09-21', end: '2026-09-27' },
-                { week: 5, start: '2026-09-28', end: '2026-10-04' },
-                { week: 6, start: '2026-10-05', end: '2026-10-11' },
-                { week: 7, start: '2026-10-12', end: '2026-10-18' },
-                { week: 8, start: '2026-10-19', end: '2026-10-25' },
-                { week: 9, start: '2026-10-26', end: '2026-11-01' },
-                { week: 10, start: '2026-11-02', end: '2026-11-08' },
-                { week: 11, start: '2026-11-09', end: '2026-11-15' },
-                { week: 12, start: '2026-11-16', end: '2026-11-22' },
-                { week: 13, start: '2026-11-23', end: '2026-11-29' },
-                { week: 14, start: '2026-11-30', end: '2026-12-06' },
-                { week: 15, start: '2026-12-07', end: '2026-12-13' },
-                { week: 16, start: '2026-12-14', end: '2026-12-20' },
-                { week: 17, start: '2026-12-21', end: '2026-12-27' },
-                { week: 18, start: '2026-12-28', end: '2027-01-03' },
-                { week: 19, start: '2027-01-04', end: '2027-01-10' },
-                { week: 20, start: '2027-01-11', end: '2027-01-17' },
-                { week: 21, start: '2027-01-18', end: '2027-01-24' }
+                { week: 1, start: '2026-08-31', end: '2026-09-04' },
+                { week: 2, start: '2026-09-07', end: '2026-09-11' },
+                { week: 3, start: '2026-09-14', end: '2026-09-18' },
+                { week: 4, start: '2026-09-21', end: '2026-09-25' },
+                { week: 5, start: '2026-09-28', end: '2026-10-02' },
+                { week: 6, start: '2026-10-05', end: '2026-10-09' },
+                { week: 7, start: '2026-10-12', end: '2026-10-16' },
+                { week: 8, start: '2026-10-19', end: '2026-10-23' },
+                { week: 9, start: '2026-10-26', end: '2026-10-30' },
+                { week: 10, start: '2026-11-02', end: '2026-11-06' },
+                { week: 11, start: '2026-11-09', end: '2026-11-13' },
+                { week: 12, start: '2026-11-16', end: '2026-11-20' },
+                { week: 13, start: '2026-11-23', end: '2026-11-27' },
+                { week: 14, start: '2026-11-30', end: '2026-12-04' },
+                { week: 15, start: '2026-12-07', end: '2026-12-11' },
+                { week: 16, start: '2026-12-14', end: '2026-12-18' },
+                { week: 17, start: '2026-12-21', end: '2026-12-25' },
+                { week: 18, start: '2026-12-28', end: '2027-01-01' },
+                { week: 19, start: '2027-01-04', end: '2027-01-08' },
+                { week: 20, start: '2027-01-11', end: '2027-01-15' },
+                { week: 21, start: '2027-01-18', end: '2027-01-22' }
             ];
 
-            // 2. 115_1 教師組別對照
             const teacherGroups = {
-                "謝怡如": 1,
-                "陳育緹": 2, "傅秀雅": 2,
-                "劉嘉瑋": 3,
-                "梁長厚": 4,
-                "陳雅妮": 5, "阮柏堯": 5,
-                "江汶珊": 6, "申閔中": 6,
-                "張評傑": 7, "許雋希": 7,
-                "孫泓民": 8,
-                "陳咨穎": 9, "周嘉賢": 9,
-                "施菽鷹": 10, "謝宜玲": 10,
-                "江俊億": 11, "蔣憶綺": 11
+                "謝怡如": 1, "陳育緹": 2, "傅秀雅": 2,
+                "劉嘉瑋": 3, "梁長厚": 4, "陳雅妮": 5, "阮柏堯": 5,
+                "江汶珊": 6, "申閔中": 6, "張評傑": 7, "許雋希": 7,
+                "孫泓民": 8, "陳咨穎": 9, "周嘉賢": 9, "施菽鷹": 10,
+                "謝宜玲": 10, "江俊億": 11, "蔣憶綺": 11
             };
 
-            // 3. 115_1 場地輪替表 (1~21週)
             const venueData = {
                 1: {1:"羽/匹", 2:"籃球 4", 3:"游泳 2", 4:"排球", 5:"綜合", 6:"籃球 1", 7:"游泳 1", 8:"遊戲", 9:"籃球 2", 10:"桌球", 11:"籃球 3"},
                 2: {1:"籃球 3", 2:"羽/匹", 3:"籃球 4", 4:"游泳 2", 5:"排球", 6:"綜合", 7:"籃球 1", 8:"游泳 1", 9:"遊戲", 10:"籃球 2", 11:"桌球 力"},
@@ -205,7 +202,6 @@
                 21: {1:"游泳 2", 2:"排球", 3:"綜合", 4:"籃球 1", 5:"游泳 1", 6:"遊戲", 7:"籃球 2", 8:"桌球 力", 9:"籃球 3", 10:"羽/匹", 11:"籃球 4"}
             };
 
-            // 4. 115_1 體育課程總表
             const scheduleData = {
                 1: {
                     1: [{cls:"923",t:"謝怡如"},{cls:"939",t:"孫泓民"},{cls:"823",t:"江汶珊"},{cls:"836",t:"江俊億"},{cls:"728",t:"謝宜玲"},{cls:"734",t:"傅秀雅"}],
@@ -241,7 +237,7 @@
                     1: [{cls:"920",t:"蔣憶綺"},{cls:"939",t:"孫泓民"},{cls:"813",t:"梁長厚"},{cls:"836",t:"江俊億"},{cls:"707",t:"阮柏堯"},{cls:"719",t:"張評傑"},{cls:"734",t:"傅秀雅"}],
                     2: [{cls:"921",t:"謝怡如"},{cls:"926",t:"江俊億"},{cls:"810",t:"劉嘉瑋"},{cls:"814",t:"梁長厚"},{cls:"824",t:"江汶珊"},{cls:"702",t:"陳育緹"},{cls:"718",t:"張評傑"},{cls:"723",t:"阮柏堯"},{cls:"730",t:"謝宜玲"}],
                     3: [{cls:"910",t:"謝怡如"},{cls:"913",t:"陳咨穎"},{cls:"927",t:"江俊億"},{cls:"802",t:"許雋希"},{cls:"808",t:"梁長厚"},{cls:"823",t:"江汶珊"},{cls:"706",t:"阮柏堯"},{cls:"722",t:"陳育緹"},{cls:"729",t:"謝宜玲"}],
-                    4: [{cls:"909",t:"謝怡如"},{cls:"912",t:"陳咨穎"},{cls:"918",t:"江俊億"},{cls:"803",t:"許雋希"},{cls:"812",t:"梁長厚"},{cls:"817",t:"劉嘉瑋"},{cls:"714",t:"謝宜玲"},{cls:"827",t:"江汶珊"}],
+                    4: [{cls:"909",t:"謝怡如"},{cls:"912",t:"陳咨穎"},{cls:"918",t:"江俊億"},{cls:"803",t:"許雋希"},{cls:"812",t:"梁長厚"},{cls:"817",t:"劉嘉瑋"},{cls:"714",t:"謝宜玲"},{cls:"823",t:"江汶珊"}],
                     5: [{cls:"906",t:"申閔中"},{cls:"907",t:"蔣憶綺"},{cls:"705",t:"陳育緹"},{cls:"713",t:"張評傑"},{cls:"724",t:"謝宜玲"}],
                     6: [{cls:"915",t:"陳咨穎"},{cls:"928",t:"江俊億"},{cls:"804",t:"許雋希"},{cls:"806",t:"陳雅妮"},{cls:"809",t:"江汶珊"},{cls:"815",t:"梁長厚"},{cls:"819",t:"劉嘉瑋"},{cls:"703",t:"陳育緹"},{cls:"727",t:"謝宜玲"}],
                     7: [{cls:"901",t:"蔣憶綺"},{cls:"911",t:"陳咨穎"},{cls:"830",t:"梁長厚"},{cls:"835",t:"陳雅妮"},{cls:"712",t:"張評傑"}],
@@ -257,7 +253,6 @@
                 }
             };
 
-            // 5. 節次時間表
             const periodTimes = {
                 1: "08:15 ~ 09:00",
                 2: "09:15 ~ 10:00",
@@ -274,7 +269,7 @@
                 5: "12:00", 6: "14:00", 7: "15:00", 8: "16:05"
             };
 
-            // DOM 元素
+            // DOM 元素 (引用自)
             const datePicker = document.getElementById('date-picker');
             const statusText = document.getElementById('status-text');
             const container = document.getElementById('schedule-container');
@@ -336,7 +331,7 @@
                     const card = document.createElement('div');
                     card.className = 'period-card';
 
-                    // 顏色與高亮邏輯
+                    // 顏色與捲動邏輯 (引用自)
                     if (isToday && periodTimes[period]) {
                         const times = periodTimes[period].split(' ~ ');
                         const startMins = timeToMins(times[0]);
@@ -373,6 +368,7 @@
                     container.appendChild(card);
                 }
 
+                // 功能 3: 自動平滑捲動到當前/即將上課節次 (引用自)
                 if (targetCard) {
                     setTimeout(() => {
                         targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -380,7 +376,7 @@
                 }
             }
 
-            // 初始化日期帶入
+            // 初始化日期 (引用自)
             const today = new Date();
             const offset = today.getTimezoneOffset() * 60000;
             const localISODate = (new Date(today - offset)).toISOString().split('T')[0];
@@ -391,10 +387,10 @@
                 if(e.target.value) renderSchedule(e.target.value);
             });
 
-            // 背景自動重繪 (每 60 秒)
+            // 背景自動重繪 (引用自)
             setInterval(() => renderSchedule(datePicker.value), 60000);
 
-            // 背景喚醒更新
+            // 功能: Visibility Change (背景喚醒自動更新) (引用自)
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
                     renderSchedule(datePicker.value);
